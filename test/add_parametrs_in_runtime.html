@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Add parametrs in runtime</title>
+</head>
+
+<body>
+    <h3>Используемые функции</h3>
+    <p>sin, cos, tan, cot, sqrt, log, pow, asin, acos, atan</p>
+
+    <h3>Используемые константы</h3>
+    <p>pi, e</p>
+    
+    <h3>Введите функцию</h3>
+    <textarea id="function-code">x - p</textarea>
+    
+    <h3>Параметры функции</h3>
+    <form name="functionParameters" id="functionParameters"></form>
+    <button type="button" onclick="addParametrs()">Add parametr</button>
+    
+
+    <h3>Парамтры доски для рисования</h3>
+    <input type="text" name="width" placeholder="width" id="width" value="1000">width</input>
+    <input type="text" name="height" placeholder="height" id="height" value="500">height</input>
+    <br>
+    <button type="button" onclick="printResult()">Print result</button>
+    <br>
+    <canvas id="xy-graph" width="1000" height="500"></canvas>
+
+    <script>
+        // используемые функции
+        const POSSIBLE_TOKENS = [
+            'sin', 'cos', 'tan', 'cot', 'sqrt', 'log', 'pow', 'asin', 'acos', 'atan'
+        ];
+        // используемые константы
+        const CONSTANTS = ['pi', 'e']
+        
+        // регулярка для поиска всех токенов из функции
+        const REG_TOKKEN = /\b[^\d\W]+\b/g
+        
+        /**
+         * Добавить парамаетр
+         */
+        function addParametrs() {
+            let formFunctionWithParam = document.getElementById('functionParameters')
+            // добавляем комментарий, если 
+            addCommentBeforeParamsIfNecessary(formFunctionWithParam)
+
+            // создаем перенос строки в единственном экземпляре
+            const br = document.createElement('br')
+
+            // создаем элемент для передачи названия параметра
+            const addParam = document.createElement('input')
+            addParam.setAttribute('type', 'text')
+
+            formFunctionWithParam.appendChild(br)
+            formFunctionWithParam.appendChild(addParam)
+        }
+
+        /**
+         * Функция для добавления первого параметра, если это необходимо
+         */
+        function addCommentBeforeParamsIfNecessary(formFunctionWithParam) {
+            if (formFunctionWithParam.childElementCount <= 0) {
+                
+                // создаем перенос строки в единственном экземпляре
+                const br = document.createElement('br')
+                formFunctionWithParam.appendChild(br)
+
+                // создаем комментарий
+                const comment = document.createTextNode('Add parametrs as key=value, example t=12')
+                formFunctionWithParam.appendChild(comment)
+            }
+        }
+
+        /**
+         * Получить ассоциативный массив имя параметра => его значение
+         */
+         function getFunctionParams() {
+            const result = new Map();
+            const formFunctionWithParam = document.getElementById('functionParameters')
+            const functionParams = formFunctionWithParam.getElementsByTagName('input')
+            
+            for (const param of functionParams) {
+                const paramValue = param.value;
+                const afterSplit = paramValue.split('=')
+                // проверяем, что разбиение по токену есть
+                if (afterSplit.length != 2) {
+                    const msg = 'Поле с параметром "' + paramValue + '" не содержит символа "="'
+                    alert(msg)
+                    throw msg
+                }
+                // проверяем, что значение - это число
+                if (isNaN(afterSplit[1])) {
+                    const msg = 'Параметр с ключом "' + afterSplit[0] + '" в качестве значения должен содержать число'
+                    alert(msg)
+                    throw msg
+                }
+                result.set(afterSplit[0], afterSplit[1])
+            }
+            return result;
+        }
+
+        /**
+         * Функция, печатающая финальную функцию, после подстановки всех параметров
+         */
+        function printResult() {
+            const functionCode = document.getElementById('function-code').value.trim()
+            // проверяем, что функция не пустая
+            if (functionCode == '') {
+                alert('Функция пустая')
+                return
+            }
+
+            // получаем параметры
+            const functionParams = getFunctionParams();
+
+            // проверяем, что нет неизвестных токенов
+            let tokens = functionCode.matchAll(REG_TOKKEN)
+            for (const token of tokens) {
+                let t = token[0]
+                if (t !== 'x' && !POSSIBLE_TOKENS.includes(t) && !CONSTANTS.includes(t)) {
+                    if (!functionParams.has(t)) {
+                        alert('неизвестный токен ' + t)
+                        return
+                    }
+                }
+            }
+
+            // строим функцию
+            let functionCodeJs = 'var F = function(x) { '
+            functionParams.forEach((value, key) => {
+                functionCodeJs += ` let ${key} = ${value}; `
+            });
+            functionCodeJs += ' return ' + functionCode + '; }';
+            console.log(functionCodeJs)
+
+            alert(functionCodeJs)
+        }
+    </script>
+
+</body>
+</html>

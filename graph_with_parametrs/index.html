@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Add parametrs in runtime</title>
+</head>
+
+<body>
+    <h3>Используемые функции</h3>
+    <p>sin, cos, tan, cot, sqrt, log, pow, asin, acos, atan</p>
+
+    <h3>Используемые константы</h3>
+    <p>pi, e</p>
+    
+    <h3>Введите функцию</h3>
+    <textarea id="function-code">sin(x)</textarea>
+    
+    <h3>Параметры функции</h3>
+    <form name="functionParameters" id="functionParameters"></form>
+    <button type="button" onclick="addParametrs()">Add parametr</button>
+    
+
+    <h3>Парамтры доски для рисования</h3>
+    <input type="text" name="minX" placeholder="minX" id="minX" value="-10">min X</input>
+    <input type="text" name="maxX" placeholder="maxX" id="maxX" value="10">max X</input>
+    <br>
+    <input type="text" name="width" placeholder="width" id="width" value="1000">width</input>
+    <input type="text" name="height" placeholder="height" id="height" value="500">height</input>
+    <br>
+    <button type="button" onclick="printResult()">Print result</button>
+    <br>
+    <canvas id="xy-graph" width="1000" height="500"></canvas>
+
+    <script>
+        // регистрируем функции
+        window.sin = Math.sin;
+        window.cos = Math.cos;
+        window.tan = Math.tan;
+        window.cot = function(x) { return 1 / Math.tan(x) };
+        window.sqrt = Math.sqrt;
+        window.pow = Math.pow;
+
+        // регистрируем константы
+        window.pi = Math.PI;
+        window.e = Math.E;
+
+        // используемые функции
+        const POSSIBLE_TOKENS = [
+            'sin', 'cos', 'tan', 'cot', 'sqrt', 'log', 'pow'
+        ];
+        // используемые константы
+        const CONSTANTS = ['pi', 'e']
+        
+        // регулярка для поиска всех токенов из функции
+        const REG_TOKKEN = /\b[^\d\W]+\b/g
+
+        // иницализация для canvas
+        var Canvas = document.getElementById('xy-graph');
+        var Ctx = null;
+
+        var Width = Canvas.width;
+        var Height = Canvas.height;
+        
+        /**
+         * Добавить парамаетр
+         */
+        function addParametrs() {
+            let formFunctionWithParam = document.getElementById('functionParameters')
+            // добавляем комментарий, если 
+            addCommentBeforeParamsIfNecessary(formFunctionWithParam)
+
+            // создаем перенос строки в единственном экземпляре
+            const br = document.createElement('br')
+
+            // создаем элемент для передачи названия параметра
+            const addParam = document.createElement('input')
+            addParam.setAttribute('type', 'text')
+
+            formFunctionWithParam.appendChild(br)
+            formFunctionWithParam.appendChild(addParam)
+        }
+
+        /**
+         * Функция для добавления первого параметра, если это необходимо
+         */
+        function addCommentBeforeParamsIfNecessary(formFunctionWithParam) {
+            if (formFunctionWithParam.childElementCount <= 0) {
+                
+                // создаем перенос строки в единственном экземпляре
+                const br = document.createElement('br')
+                formFunctionWithParam.appendChild(br)
+
+                // создаем комментарий
+                const comment = document.createTextNode('Add parametrs as key=value, example t=12')
+                formFunctionWithParam.appendChild(comment)
+            }
+        }
+
+        /**
+         * Получить ассоциативный массив имя параметра => его значение
+         */
+         function getFunctionParams() {
+            const result = new Map();
+            const formFunctionWithParam = document.getElementById('functionParameters')
+            const functionParams = formFunctionWithParam.getElementsByTagName('input')
+            
+            for (const param of functionParams) {
+                const paramValue = param.value;
+                const afterSplit = paramValue.split('=')
+                // проверяем, что разбиение по токену есть
+                if (afterSplit.length != 2) {
+                    const msg = 'Поле с параметром "' + paramValue + '" не содержит символа "="'
+                    alert(msg)
+                    throw msg
+                }
+                // проверяем, что значение - это число
+                if (isNaN(afterSplit[1])) {
+                    const msg = 'Параметр с ключом "' + afterSplit[0] + '" в качестве значения должен содержать число'
+                    alert(msg)
+                    throw msg
+                }
+                result.set(afterSplit[0], afterSplit[1])
+            }
+            return result;
+        }
+
+        /**
+         * Функция, печатающая финальную функцию, после подстановки всех параметров
+         */
+        function printResult() {
+            const functionCode = document.getElementById('function-code').value.trim()
+            // проверяем, что функция не пустая
+            if (functionCode == '') {
+                alert('Функция пустая')
+                return
+            }
+
+            // получаем параметры
+            const functionParams = getFunctionParams();
+
+            // проверяем, что нет неизвестных токенов
+            let tokens = functionCode.matchAll(REG_TOKKEN)
+            for (const token of tokens) {
+                let t = token[0]
+                if (t !== 'x' && !POSSIBLE_TOKENS.includes(t) && !CONSTANTS.includes(t)) {
+                    if (!functionParams.has(t)) {
+                        alert('неизвестный токен ' + t)
+                        return
+                    }
+                }
+            }
+
+            // строим функцию
+            let functionCodeJs = 'var F = function(x) { '
+            functionParams.forEach((value, key) => {
+                functionCodeJs += ` let ${key} = ${value}; `
+            });
+            functionCodeJs += ' return ' + functionCode + '; }';
+            console.log(functionCodeJs)
+
+            // alert(functionCodeJs)
+            Draw(functionCodeJs)
+        }
+
+        // всё, что ниже это для canvas
+
+        // Правая граница по x (задается на форме):
+        function MaxX() {
+            return parseInt(document.getElementById('maxX').value);
+        }
+
+        // Левая граница по x (задается на форме):
+        function MinX() {
+            return parseInt(document.getElementById('minX').value);
+        }
+
+        // Верхняя граница по y (вычисляется):
+        function MaxY() {
+            return MaxX() * Height / Width;
+        }
+
+        // Нижняя граница по y (вычисляется):
+        function MinY() {
+            return MinX() * Height / Width;
+        }
+
+        // Возвращает физическую координату x от логической координаты x:
+        function XC(x) {
+            return (x - MinX()) / (MaxX() - MinX()) * Width;
+        }
+
+        // Возвращает физическую координату y от логической координаты y:
+        function YC(y) {
+            return Height - (y - MinY()) / (MaxY() - MinY()) * Height;
+        }
+
+        /**
+         * Очистить доску canvas и нарисовать новый график
+         * 
+         * @param functionCode
+         */
+        function Draw(functionCode) {
+
+            // Evaluate the user-supplied code, which must bind a value to F.
+            eval(functionCode);
+
+            if (Canvas.getContext) {
+
+                Width = parseInt(document.getElementById('width').value)
+                Height = parseInt(document.getElementById('height').value)
+
+                Canvas.setAttribute('width', Width)
+                Canvas.setAttribute('height', Height)
+
+                // Set up the canvas:
+                Ctx = Canvas.getContext('2d');
+                Ctx.clearRect(0, 0, Width, Height);
+
+                // Draw:
+                DrawAxes();
+                RenderFunction(F);
+
+            } else {
+                // Do nothing.
+            }
+        }
+
+        function editCanvasSize() {
+            const newWidth = parseInt(document.getElementById('width').value)
+            const newHeight = parseInt(document.getElementById('height').value)
+            Canvas.setAttribute('width', newWidth)
+            Canvas.setAttribute('height', newHeight)
+        }
+
+
+        // Возвращает расстояние между делениями по оси X:
+        function XTickDelta() {
+            return 1;
+        }
+
+        // Возвращает расстояние между делениями по оси Y:
+        function YTickDelta() {
+            return 1;
+        }
+
+        /**
+         * Рисование осей X и Y с делениями
+         */
+        function DrawAxes() {
+            Ctx.save();
+            Ctx.lineWidth = 2;
+            // +Y axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(0), YC(MaxY()));
+            Ctx.stroke();
+
+            // -Y axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(0), YC(MinY()));
+            Ctx.stroke();
+
+            // Y axis tick marks
+            var delta = YTickDelta();
+            for (var i = 1; (i * delta) < MaxY(); ++i) {
+                Ctx.beginPath();
+                Ctx.moveTo(XC(0) - 5, YC(i * delta));
+                Ctx.lineTo(XC(0) + 5, YC(i * delta));
+                Ctx.stroke();
+            }
+
+            var delta = YTickDelta();
+            for (var i = 1; (i * delta) > MinY(); --i) {
+                Ctx.beginPath();
+                Ctx.moveTo(XC(0) - 5, YC(i * delta));
+                Ctx.lineTo(XC(0) + 5, YC(i * delta));
+                Ctx.stroke();
+            }
+
+            // +X axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(MaxX()), YC(0));
+            Ctx.stroke();
+
+            // -X axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(MinX()), YC(0));
+            Ctx.stroke();
+
+            // X tick marks
+            var delta = XTickDelta();
+            for (var i = 1; (i * delta) < MaxX(); ++i) {
+                Ctx.beginPath();
+                Ctx.moveTo(XC(i * delta), YC(0) - 5);
+                Ctx.lineTo(XC(i * delta), YC(0) + 5);
+                Ctx.stroke();
+            }
+
+            var delta = XTickDelta();
+            for (var i = 1; (i * delta) > MinX(); --i) {
+                Ctx.beginPath();
+                Ctx.moveTo(XC(i * delta), YC(0) - 5);
+                Ctx.lineTo(XC(i * delta), YC(0) + 5);
+                Ctx.stroke();
+            }
+            Ctx.restore();
+        }
+
+
+        // RenderFunction(f) renders the input funtion f on the canvas.
+        function RenderFunction(f) {
+            var first = true;
+
+            // При рендеринге XSTEP определяет горизонтальное расстояние между точками:
+            var XSTEP = (MaxX() - MinX()) / Width;
+
+            Ctx.beginPath();
+            for (var x = MinX(); x <= MaxX(); x += XSTEP) {
+                var y = f(x);
+                if (first)
+                {
+                    Ctx.moveTo(XC(x), YC(y));
+                    first = false;
+                }
+                else
+                {
+                    Ctx.lineTo(XC(x), YC(y));
+                }
+            }
+            Ctx.stroke();
+        }
+    </script>
+
+</body>
+</html>
