@@ -2,18 +2,18 @@
 <html>
 
 <head>
-    <title>graph with parametrs</title>
+    <title>Add parametrs in runtime</title>
 </head>
 
 <body>
     <h3>Используемые функции</h3>
-    <p>sin, cos, tan, cot, sqrt, log, pow</p>
+    <p>sin, cos, tan, cot, sqrt, log, pow, asin, acos, atan</p>
 
     <h3>Используемые константы</h3>
     <p>pi, e</p>
     
     <h3>Введите функцию</h3>
-    <textarea id="function-code">sin(x)</textarea>
+    <textarea id="function-code">x - p</textarea>
     
     <h3>Параметры функции</h3>
     <form name="functionParameters" id="functionParameters"></form>
@@ -21,18 +21,19 @@
     
 
     <h3>Парамтры доски для рисования</h3>
-    <input type="text" name="minX" placeholder="minX" id="minX" value="-10">min X</input>
-    <input type="text" name="maxX" placeholder="maxX" id="maxX" value="10">max X</input>
-    <br>
     <input type="text" name="width" placeholder="width" id="width" value="1000">width</input>
     <input type="text" name="height" placeholder="height" id="height" value="500">height</input>
     <br>
     <button type="button" onclick="printResult()">Print result</button>
     <br>
-    <br>
     <canvas id="xy-graph" width="1000" height="500"></canvas>
 
-    <script type="text/javascript" src="parametrs.js"></script>
-    <script type="text/javascript" src="canvas_draw.js"></script>
+    <script type="module">
+        import Delaunator from 'https://cdn.skypack.dev/delaunator@5.0.0';
+        const coords = [168,180, 168,178, 168,179, 168,181, 168,183];
+        let d = new Delaunator(coords)
+        
+    </script>
+
 </body>
 </html>
