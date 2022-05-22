@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Рекурсивный алгоритм триангуляции</title>
+    <script src="https://unpkg.com/delaunator@5.0.0/delaunator.min.js"></script>
+</head>
+
+<body>
+    <h3>Произвольный многоугольник без самопересечений - реализовать рекурсивный алгоритм триангуляции</h3>
+
+    <h3>Введите координаты многоугольника:</h3>
+    <form name="parametrs" id="parametrs">
+        <label for="a">cords:</label><br>
+        <input type="text" id="cords" name="cords" value=""><br>
+    </form>
+    
+    <h3>Парамтры доски для рисования</h3>
+    <input type="text" name="minX" placeholder="minX" id="minX" value="-10">min X</input>
+    <input type="text" name="maxX" placeholder="maxX" id="maxX" value="10">max X</input>
+    <br>
+    <input type="text" name="width" placeholder="width" id="width" value="1000">width</input>
+    <input type="text" name="height" placeholder="height" id="height" value="1000">height</input>
+    <br>
+    <button type="button" onclick="printResult()">Print result</button>
+    <br>
+    <canvas id="xy-graph" width="1000" height="500"></canvas>
+
+    <script type="text/javascript">
+        var Canvas = document.getElementById('xy-graph');
+        var Ctx = null;
+
+        var Width = Canvas.width;
+        var Height = Canvas.height;
+
+        /**
+         * Проверка является ли аргумент числом
+         */
+         function isNumber(n) {
+            return !isNaN(parseFloat(n)) && !isNaN(n - 0);
+        }
+
+        // Правая граница по x (задается на форме):
+        function MaxX() {
+            return parseInt(document.getElementById('maxX').value);
+        }
+
+        // Левая граница по x (задается на форме):
+        function MinX() {
+            return parseInt(document.getElementById('minX').value);
+        }
+
+        // Верхняя граница по y (вычисляется):
+        function MaxY() {
+            return MaxX() * Height / Width;
+        }
+
+        // Нижняя граница по y (вычисляется):
+        function MinY() {
+            return MinX() * Height / Width;
+        }
+
+        // Возвращает физическую координату x от логической координаты x:
+        function XC(x) {
+            return (x - MinX()) / (MaxX() - MinX()) * Width;
+        }
+
+        // Возвращает физическую координату y от логической координаты y:
+        function YC(y) {
+            return Height - (y - MinY()) / (MaxY() - MinY()) * Height;
+        }
+
+        function getRandomColour() {
+            var red = Math.floor(Math.random()* 255);
+            var green = Math.floor(Math.random() * 255);
+            var blue = Math.floor(Math.random() * 255);
+
+            return "rgb("+red+","+green+"," +blue+" )";  
+        }
+
+        function editCanvasSize() {
+            const newWidth = parseInt(document.getElementById('width').value)
+            const newHeight = parseInt(document.getElementById('height').value)
+            Canvas.setAttribute('width', newWidth)
+            Canvas.setAttribute('height', newHeight)
+        }
+
+
+        // Возвращает расстояние между делениями по оси X:
+        function XTickDelta() {
+            return 1;
+        }
+
+        // Возвращает расстояние между делениями по оси Y:
+        function YTickDelta() {
+            return 1;
+        }
+
+        /**
+         * Рисование осей X и Y с делениями
+         */
+        function DrawAxes() {
+            Ctx.save();
+            Ctx.lineWidth = 1;
+            
+            // +Y axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(0), YC(MaxY()));
+            Ctx.stroke();
+
+            // -Y axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(0), YC(MinY()));
+            Ctx.stroke();
+
+            // Y axis от 0 до максимума
+            let deltY = YTickDelta();
+            for (var i = 1; (i * deltY) < MaxY(); ++i) { 
+                Ctx.beginPath();
+                Ctx.moveTo(XC(0) - 5, YC(i * deltY));
+                Ctx.lineTo(XC(0) + 5, YC(i * deltY));
+                // пишем текстом координату y
+                Ctx.fillText(i, XC(0) + 10, YC(i * deltY));
+                Ctx.stroke();
+            }
+
+            // Y axis от минимума до 0
+            for (var i = 1; (i * deltY) > MinY(); --i) {
+                Ctx.beginPath();
+                Ctx.moveTo(XC(0) - 5, YC(i * deltY));
+                Ctx.lineTo(XC(0) + 5, YC(i * deltY));
+                // пишем текстом координату y
+                Ctx.fillText(i, XC(0) + 10, YC(i * deltY));
+                Ctx.stroke();
+            }
+
+            // +X axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(MaxX()), YC(0));
+            Ctx.stroke();
+
+            // -X axis
+            Ctx.beginPath();
+            Ctx.moveTo(XC(0), YC(0));
+            Ctx.lineTo(XC(MinX()), YC(0));
+            Ctx.stroke();
+
+            // X tick marks
+            let deltaX = XTickDelta();
+            for (var i = 1; (i * deltaX) < MaxX(); ++i) {
+                Ctx.beginPath();
+                Ctx.moveTo(XC(i * deltaX), YC(0) - 5);
+                Ctx.lineTo(XC(i * deltaX), YC(0) + 5);
+                // пишем текстом координату y
+                Ctx.fillText(i, XC(i * deltaX), YC(0) + 10);
+                Ctx.stroke();
+            }
+
+            for (var i = 1; (i * deltaX) > MinX(); --i) {
+                Ctx.beginPath();
+                Ctx.moveTo(XC(i * deltaX), YC(0) -  5);
+                Ctx.lineTo(XC(i * deltaX), YC(0) + 5);
+                if (i != 0) {
+                    // пишем текстом координату y
+                    Ctx.fillText(i, XC(i * deltaX), YC(0) + 15);
+                }
+                Ctx.stroke();
+            }
+            Ctx.restore();
+        }
+
+        /**
+         * Рисуем многоугольник
+         */
+        function drawPolygon() {
+            let cordsFromInp = document.getElementById('cords').value.split(',');
+            if (cordsFromInp.length % 2 !== 0) {
+                alert(`Неверное число аргументов, ожидалось колличество аргументов, кратное 3, получили ${cordsFromInp.length}`)
+                    return
+            }
+
+            const cords = []
+            for (let i = 0; i < cordsFromInp.length; i++) {
+                let cord = cordsFromInp[i]
+                if (!isNumber(cord)) {
+                    alert(`Это не число ${cord}`)
+                    return
+                }
+                cords.push(parseFloat(cord))
+            }
+
+            let deltaX = XTickDelta();
+
+            Ctx.beginPath();
+            Ctx.moveTo(XC(cords[0]), YC(cords[1]))
+            for (let i = 0; i < cords.length; i += 2) {
+                let x = cords[i]
+                let y = cords[i + 1]
+
+                Ctx.lineTo(XC(x), YC(y));
+
+                Ctx.fillText(i / 2, XC(x), YC(y) + 15);
+            }
+            Ctx.lineTo(XC(cords[0]), YC(cords[1]))
+            Ctx.stroke();
+        }
+
+        /**
+         * Рисуем триугольнки
+         */
+        function drawTriangles() {
+            let cordsFromInp = document.getElementById('cords').value.split(',');
+            if (cordsFromInp.length % 2 !== 0) {
+                alert(`Неверное число аргументов, ожидалось колличество аргументов, кратное 2, получили ${cordsFromInp.length}`)
+                    return
+            }
+
+            const coords = []
+            for (let i = 0; i < cordsFromInp.length; i++) {
+                let cord = cordsFromInp[i]
+                if (!isNumber(cord)) {
+                    alert(`Это не число ${cord}`)
+                    return
+                }
+                coords.push(parseFloat(cord))
+            }
+            
+            let d = new Delaunator(coords);
+            let triangles = d.triangles
+            for (let i = 0; i < triangles.length; i += 3) {
+                Ctx.strokeStyle = getRandomColour();
+
+                let a = triangles[i]
+                let b = triangles[i + 1]
+                let c = triangles[i + 2]
+                
+                Ctx.beginPath();
+                let x = coords[a * 2];
+                let y = coords[a * 2 + 1]
+                Ctx.moveTo(XC(x), YC(y));
+
+                x = coords[b * 2];
+                y = coords[b * 2 + 1];
+                Ctx.lineTo(XC(x), YC(y));
+
+                x = coords[c * 2];
+                y = coords[c * 2 + 1];
+                Ctx.lineTo(XC(x), YC(y));
+
+                x = coords[a * 2];
+                y = cords[a * 2 + 1]
+                Ctx.lineTo(XC(x), YC(y));
+
+                Ctx.stroke();
+            }
+        }
+
+        /**
+         * Печатаем результат
+         */
+        function printResult() {
+            if (Canvas.getContext) {
+                Width = parseInt(document.getElementById('width').value)
+                Height = parseInt(document.getElementById('height').value)
+
+                Canvas.setAttribute('width', Width)
+                Canvas.setAttribute('height', Height)
+
+                Ctx = Canvas.getContext('2d');
+                Ctx.clearRect(0, 0, Width, Height);
+
+                // Рисуем axes
+                DrawAxes();
+
+                Ctx.lineWidth = 2;
+                Ctx.strokeStyle = 'red'
+
+                // рисуем многоугольнк
+                drawPolygon()
+
+                Ctx.strokeStyle = 'blue'
+
+                //рисуем треугольники
+                drawTriangles()
+                
+                } else {
+                }
+        }
+    </script>
+</body>
+
+</html>
