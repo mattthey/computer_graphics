@@ -1,4 +1,6 @@
 // иницализация для canvas
+const XSTEP = 0.005;
+
 var Canvas = document.getElementById('xy-graph');
 var Ctx = null;
 
@@ -38,13 +40,9 @@ function YC(y) {
 /**
  * Очистить доску canvas и нарисовать новый график
  * 
- * @param functionCode
+ * @param functionParams ассоциативный массив с параметрами функции
  */
-function Draw(functionCode) {
-
-    // Преобразуем сформированный код, обязательно переменная должна называться F
-    eval(functionCode);
-
+function Draw(functionParams) {
     if (Canvas.getContext) {
 
         Width = parseInt(document.getElementById('width').value)
@@ -62,7 +60,7 @@ function Draw(functionCode) {
         Ctx.lineWidth = 2;
         Ctx.strokeStyle = 'red'
 
-        RenderFunction(F);
+        RenderFunction(functionParams);
 
     } else {
     }
@@ -151,7 +149,7 @@ function DrawAxes() {
 
     for (var i = 1; (i * deltaX) > MinX(); --i) {
         Ctx.beginPath();
-        Ctx.moveTo(XC(i * deltaX), YC(0) - 5);
+        Ctx.moveTo(XC(i * deltaX), YC(0) -  5);
         Ctx.lineTo(XC(i * deltaX), YC(0) + 5);
         if (i != 0) {
             // пишем текстом координату y
@@ -164,25 +162,31 @@ function DrawAxes() {
 
 
 // RenderFunction(f) renders the input funtion f on the canvas.
-function RenderFunction(f) {
-    var first = true;
+function RenderFunction(params) {
+    const a = params.get('a');
+    const b = params.get('b');
+    const c = params.get('c');
+    const d = params.get('d');
 
-    // При рендеринге XSTEP определяет горизонтальное расстояние между точками:
-    // При рендеринге по алгоритму Брезенхэма мы идем с шагом 0.5
-    let XSTEP = 0.5;
+    const fromT = params.get('from-t');
+    const toT = params.get('to-t');
+
+    let prevX = - (a / (fromT + b));
 
     Ctx.beginPath();
-    for (var x = MinX(); x <= MaxX(); x += XSTEP) {
-        var y = f(x);
-        if (first)
-        {
-            Ctx.moveTo(XC(x), YC(y));
-            first = false;
-        }
-        else
-        {
+    for (var tt = fromT; tt <= toT; tt += XSTEP)
+    {
+        const x = a / (tt + b);
+        const y = c * tt + d
+
+        console.info(`t=${tt}; x=${x}; y=${y}`)
+        
+        if ((prevX >= 0 && x >= 0) || (prevX <= 0 && x <= 0)) {
             Ctx.lineTo(XC(x), YC(y));
+        } else {
+            Ctx.moveTo(XC(x), YC(y));
         }
+        prevX = x;
     }
     Ctx.stroke();
 }
