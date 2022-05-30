@@ -58,7 +58,7 @@ function Draw(functionParams) {
     // Рисуем
     DrawAxes();
 
-    // Ctx.lineWidth = 2;
+    Ctx.lineWidth = 2;
     Ctx.strokeStyle = 'red'
 
     RenderFunction(functionParams);
@@ -190,29 +190,37 @@ function RenderFunction(params) {
     const c = params.get('c');
     const d = params.get('d');
 
-    // const fromT = findFromT(a, b, c, d);
-    // const toT = findToT(a, b, c, d);
+    let toInf = true;
+    let toNegInf = true;
 
     let prevX = ((c * (a + 10 * b))/-10) + d
+    let prevY = 101;
 
     Ctx.beginPath();
-    for (let coordX = 0; coordX <= 1000; coordX += 1)
+    for (let coordX = 0; coordX <= Width; coordX += 1)
     {
         const x = reverseXC(coordX);
         const y = ((c * (a - x * b)) / x) + d;
 
-        if (y === Infinity) {
-            Ctx.lineTo(coordX, MAX_Y_CORD);
-        } else if (y === -Infinity) {
+        if (y === Infinity && Math.abs(prevY) >= 10) {
             Ctx.lineTo(coordX, MIN_Y_CORD);
-        } 
-        else if (prevX !== 0 && (prevX >= 0 && x >= 0) || (prevX <= 0 && x <= 0)) {
+            Ctx.moveTo(XC(0), MAX_Y_CORD);
+            const xx = reverseXC(coordX + 2);
+            Ctx.lineTo(coordX + 2, YC(((c * (a - xx * b)) / xx) + d));
+        } else if (y === -Infinity && Math.abs(prevY) >= 10) {
+            Ctx.lineTo(coordX, MAX_Y_CORD);
+            Ctx.moveTo(XC(0), MIN_Y_CORD);
+            const xx = reverseXC(coordX + 2);
+            Ctx.lineTo(coordX + 2, YC(((c * (a - xx * b)) / xx) + d));
+        }
+        if (prevX !== 0 && (prevX >= 0 && x >= 0) || (prevX <= 0 && x <= 0)) {
             Ctx.lineTo(coordX, YC(y));
         } else {
             Ctx.moveTo(coordX, YC(y));
         }
-        console.log(`coordX=${coordX};  (${x}; ${y})`)
+        console.log(`prev (${y},${x}); coordX=${coordX};  (${x}; ${y})`)
         prevX = x;
+        prevY = YC(y);
     }
     // for (let x = -10; x <= 10; x += XSTEP)
     // {

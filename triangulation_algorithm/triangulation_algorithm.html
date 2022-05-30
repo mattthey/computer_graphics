@@ -209,6 +209,22 @@
         }
 
         /**
+         */
+        function isLineInPolygone(x, y, xp, yp) {
+            let npol = xp.length;
+            let j = npol - 1;
+            let c = 0;
+            for (let i = 0; i < npol;i++){
+                if ((((yp[i]<=y) && (y<yp[j])) || ((yp[j]<=y) && (y<yp[i]))) &&
+                (x > (xp[j] - xp[i]) * (y - yp[i]) / (yp[j] - yp[i]) + xp[i])) {
+                    c = !c
+                }
+                j = i;
+            }
+            return c;
+        }
+
+        /**
          * Рисуем триугольнки
          */
         function drawTriangles() {
@@ -219,6 +235,8 @@
             }
 
             const coords = []
+            const xp = []
+            const yp = []
             for (let i = 0; i < cordsFromInp.length; i++) {
                 let cord = cordsFromInp[i]
                 if (!isNumber(cord)) {
@@ -226,6 +244,11 @@
                     return
                 }
                 coords.push(parseFloat(cord))
+                if (i % 2 === 0) {
+                    xp.push(parseFloat(cord))
+                } else {
+                    yp.push(parseFloat(cord))
+                }
             }
             
             let d = new Delaunator(coords);
@@ -242,16 +265,28 @@
                 let y = coords[a * 2 + 1]
                 Ctx.moveTo(XC(x), YC(y));
 
-                x = coords[b * 2];
-                y = coords[b * 2 + 1];
+                let x2 = coords[b * 2];
+                let y2 = coords[b * 2 + 1];
+                if (!isLineInPolygone( (x2 - x)/2, (y2 - y)/2, xp, yp)) {
+                    Ctx.stroke();
+                    continue
+                }
                 Ctx.lineTo(XC(x), YC(y));
 
-                x = coords[c * 2];
-                y = coords[c * 2 + 1];
+                let x3 = coords[c * 2];
+                let y3 = coords[c * 2 + 1];
+                if (!isLineInPolygone( (x3 - x2)/2, (y3 - y2)/2, xp, yp)) {
+                    Ctx.stroke();
+                    continue
+                }
                 Ctx.lineTo(XC(x), YC(y));
 
-                x = coords[a * 2];
-                y = coords[a * 2 + 1]
+                let x4 = coords[a * 2];
+                let y4 = coords[a * 2 + 1]
+                if (!isLineInPolygone( (x4 - x)/2, (y4 - y)/2, xp, yp)) {
+                    Ctx.stroke();
+                    continue
+                }
                 Ctx.lineTo(XC(x), YC(y));
 
                 Ctx.stroke();
