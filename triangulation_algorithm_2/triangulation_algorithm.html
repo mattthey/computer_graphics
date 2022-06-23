@@ -3,7 +3,6 @@
 
 <head>
     <title>Рекурсивный алгоритм триангуляции</title>
-    <script src="https://unpkg.com/delaunator@5.0.0/delaunator.min.js"></script>
 </head>
 
 <body>
@@ -22,16 +21,26 @@
     <input type="text" name="width" placeholder="width" id="width" value="1000">width</input>
     <input type="text" name="height" placeholder="height" id="height" value="500">height</input>
     <br>
-    <button type="button" onclick="polygon()">polygon</button>
+    <button type="button" id="polygon">polygon</button>
     <br>
-    <button type="button" onclick="triangulation()">triangulation</button>
+    <button type="button" id="triangulation">triangulation</button>
     <br>
-    <button type="button" onclick="triangulationStep()">triangulation step</button>
+    <button type="button" id="triangulationStep">triangulation step</button>
+    <br>
     <canvas id="xy-graph" width="1000" height="500"></canvas>
 
-    <script type="text/javascript" src="script.js"></script>
+    <script type="module">
+        import earcut from 'https://cdn.skypack.dev/earcut';
+        
+        console.log(earcut([10,0, 0,50, 60,60, 70,10]));
 
-    <!-- <script type="text/javascript">
+        function hello()
+        {
+            console.log(earcut([10,0, 0,50, 60,60, 70,10]));
+        }
+
+        // -----------------------------------------------
+
         var Canvas = document.getElementById('xy-graph');
         var Ctx = null;
 
@@ -41,7 +50,7 @@
         /**
          * Проверка является ли аргумент числом
          */
-         function isNumber(n) {
+        function isNumber(n) {
             return !isNaN(parseFloat(n)) && !isNaN(n - 0);
         }
 
@@ -76,11 +85,11 @@
         }
 
         function getRandomColour() {
-            var red = Math.floor(Math.random()* 255);
+            var red = Math.floor(Math.random() * 255);
             var green = Math.floor(Math.random() * 255);
             var blue = Math.floor(Math.random() * 255);
 
-            return "rgb("+red+","+green+"," +blue+" )";  
+            return "rgb(" + red + "," + green + "," + blue + " )";
         }
 
         function editCanvasSize() {
@@ -107,7 +116,7 @@
         function DrawAxes() {
             Ctx.save();
             Ctx.lineWidth = 1;
-            
+
             // +Y axis
             Ctx.beginPath();
             Ctx.moveTo(XC(0), YC(0));
@@ -122,7 +131,7 @@
 
             // Y axis от 0 до максимума
             let deltY = YTickDelta();
-            for (var i = 1; (i * deltY) < MaxY(); ++i) { 
+            for (var i = 1; (i * deltY) < MaxY(); ++i) {
                 Ctx.beginPath();
                 Ctx.moveTo(XC(0) - 5, YC(i * deltY));
                 Ctx.lineTo(XC(0) + 5, YC(i * deltY));
@@ -166,7 +175,7 @@
 
             for (var i = 1; (i * deltaX) > MinX(); --i) {
                 Ctx.beginPath();
-                Ctx.moveTo(XC(i * deltaX), YC(0) -  5);
+                Ctx.moveTo(XC(i * deltaX), YC(0) - 5);
                 Ctx.lineTo(XC(i * deltaX), YC(0) + 5);
                 if (i != 0) {
                     // пишем текстом координату y
@@ -184,7 +193,7 @@
             let cordsFromInp = document.getElementById('cords').value.split(',');
             if (cordsFromInp.length % 2 !== 0) {
                 alert(`Неверное число аргументов, ожидалось колличество аргументов, кратное 3, получили ${cordsFromInp.length}`)
-                    return
+                return
             }
 
             const cords = []
@@ -250,7 +259,7 @@
 
                     return true;
                 }
-             **/
+            **/
 
             // 2. Проверить, принадлежит ли точка на отрезке (например, его середина) многоугольнику. => O(N) 
             // let x = (x2 - x1) / 2;
@@ -271,8 +280,7 @@
             for (let i = 0; i < xp.length; i++) {
                 let p3 = new Point(xp[i], yp[i])
                 let p4 = (i == xp.length - 1) ? new Point(xp[0], yp[0]) : new Point(xp[i + 1], yp[i + 1])
-                if (checkIntersectionOfTwoLineSegments(p1, p2, p3, p4))
-                {
+                if (checkIntersectionOfTwoLineSegments(p1, p2, p3, p4)) {
                     console.log(`Пересекается (${p1.x},${p1.y})-(${p2.x},${p2.y}) и (${p3.x},${p3.y})-(${p4.x},${p4.y})`)
                     return false;
                 }
@@ -306,7 +314,7 @@
             let cordsFromInp = document.getElementById('cords').value.split(',');
             if (cordsFromInp.length % 2 !== 0) {
                 alert(`Неверное число аргументов, ожидалось колличество аргументов, кратное 2, получили ${cordsFromInp.length}`)
-                    return
+                return
             }
 
             const coords = []
@@ -325,16 +333,16 @@
                     yp.push(parseFloat(cord))
                 }
             }
-            
-            let d = new Delaunator(coords);
-            let triangles = d.triangles
+
+            // let d = new Delaunator(coords);
+            let triangles = earcut(coords)
             for (let i = 0; i < triangles.length; i += 3) {
                 Ctx.strokeStyle = getRandomColour();
 
                 let a = triangles[i]
                 let b = triangles[i + 1]
                 let c = triangles[i + 2]
-                
+
                 Ctx.beginPath();
                 let x = coords[a * 2];
                 let y = coords[a * 2 + 1]
@@ -357,7 +365,7 @@
                 //     Ctx.stroke();
                 //     continue
                 // }
-                
+
                 Ctx.lineTo(XC(x3), YC(y3));
 
                 let x4 = coords[a * 2];
@@ -367,8 +375,8 @@
                 //     Ctx.stroke();
                 //     continue
                 // }
-                
-                
+
+
                 Ctx.lineTo(XC(x4), YC(y4));
 
                 Ctx.stroke();
@@ -384,7 +392,7 @@
         function polygon() {
             globalTriangles = null;
             globalTrianglesIdx = null;
-            globalCoords = []
+            global_coords = []
             global_xp = []
             global_yp = []
 
@@ -407,7 +415,7 @@
                 // рисуем многоугольнк
                 drawPolygon()
 
-                Ctx.strokeStyle = 'blue'                
+                Ctx.strokeStyle = 'blue'
             }
         }
 
@@ -436,9 +444,9 @@
                         global_yp.push(parseFloat(cord))
                     }
                 }
-                
-                let d = new Delaunator(global_coords);
-                globalTriangles = d.triangles
+
+                // let d = new Delaunator(global_coords);
+                globalTriangles = earcut(global_coords)
                 globalTrianglesIdx = 0;
             }
 
@@ -454,7 +462,7 @@
             let a = globalTriangles[i]
             let b = globalTriangles[i + 1]
             let c = globalTriangles[i + 2]
-            
+
             Ctx.beginPath();
             let x = global_coords[a * 2];
             let y = global_coords[a * 2 + 1]
@@ -465,23 +473,6 @@
             let x3 = global_coords[c * 2];
             let y3 = global_coords[c * 2 + 1];
 
-            if (!isLineInPolygone(new Point(x, y), new Point(x2, y2), global_xp, global_yp))
-            {
-
-                globalTrianglesIdx += 3;
-                return
-            }
-            if (!isLineInPolygone(new Point(x2, y2), new Point(x3, y3), global_xp, global_yp))
-            {
-                globalTrianglesIdx += 3;
-                return
-            }
-            if (!isLineInPolygone(new Point(x3, y3), new Point(x, y), global_xp, global_yp))
-            {
-                globalTrianglesIdx += 3;
-                return
-            }
-            
             Ctx.moveTo(XC(x), YC(y));
             Ctx.lineTo(XC(x2), YC(y2));
             Ctx.lineTo(XC(x3), YC(y3));
@@ -529,7 +520,7 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-            }   
+            }
         }
 
         function checkIntersectionOfTwoLineSegments(p1, p2, p3, p4) {
@@ -559,7 +550,7 @@
 
             if ((p1.x - p2.x == 0) && (p3.x - p4.x == 0)) {
                 //если они лежат на одном X
-                if(p1.x == p3.x) {
+                if (p1.x == p3.x) {
                     //проверим пересекаются ли они, т.е. есть ли у них общий Y
                     //для этого возьмём отрицание от случая, когда они НЕ пересекаются
                     if (!((Math.max(p1.y, p2.y) < Math.min(p3.y, p4.y)) || (Math.min(p1.y, p2.y) > Math.max(p3.y, p4.y)))) {
@@ -614,17 +605,26 @@
 
             //Xa - абсцисса точки пересечения двух прямых
             let Xa = (b2 - b1) / (A1 - A2);
-            if ((Xa < Math.max(p1.x, p3.x)) || (Xa > Math.min( p2.x, p4.x)))
-            {
+            Xa = Xa.toFixed(5)
+            if ((Xa == p1.x && Xa == p3.x) || (Xa == p2.x && Xa == p3.x) || (Xa == p1.x && Xa == p4.x) || (Xa == p2.x && Xa == p4.x))
+                return false;
+            if (Xa < Math.max(p1.x, p3.x) || Xa > Math.min(p2.x, p4.x)) {
                 return false; //точка Xa находится вне пересечения проекций отрезков на ось X
             }
-            else
-            {
+            else {
                 return true;
             }
 
         }
-    </script> -->
+
+        // регистрируем слушателей
+        document.getElementById('polygon').addEventListener('click', polygon);
+        document.getElementById('triangulation').addEventListener('click', triangulation);
+        document.getElementById('triangulationStep').addEventListener('click', triangulationStep);
+        
+        
+    </script>
+
 </body>
 
 </html>
